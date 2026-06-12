@@ -42,5 +42,4 @@ public class imuEx {
         return delta;}
     public IMU getInternalIMU() {
         return imu;
-    }
-}
+    }}
