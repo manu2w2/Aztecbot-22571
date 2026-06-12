@@ -8,13 +8,10 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import com.seattlesolvers.solverslib.controller.PIDFController;
-import com.seattlesolvers.solverslib.hardware.RevIMU;
 import com.seattlesolvers.solverslib.hardware.motors.Motor;
 import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
 import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import utilidades.imuEx;
 
 
 
@@ -27,7 +24,7 @@ public class teleop extends OpMode {
     DcMotorEx flywheelMotor, flywheelMotor2, Transfer;
     PIDFController shooterController;
     PIDFController TurretController;
-    IMU imu;
+    imuEx imu;
     MotorEx TurretMotor;
     ServoEx ServoTope;
     boolean shooterRunning = false;
@@ -50,7 +47,7 @@ public class teleop extends OpMode {
     public static double motorGearboxRatio = 15.0;
     public static double turretExternalGearRatio = 4.8;
 
-    public static double turretMaxPower = 0.15;
+    public static double turretMaxPower = 0.50;
 
 
     public static double turretStartAngle = 90.0;
@@ -60,8 +57,6 @@ public class teleop extends OpMode {
     public static double turretMinAngle = 0.0;
     public static double turretMaxAngle = 180.0;
 
-    double lastRawHeading = 0.0;
-    double continuousHeading = 0.0;
 
     @Override
     public void init() {
@@ -71,27 +66,14 @@ public class teleop extends OpMode {
         ServoTope = new ServoEx(hardwareMap, "ServoTope");
 
 
-        TurretMotor = new MotorEx(hardwareMap, "TurretMotor", 420, 400);
+        TurretMotor = new MotorEx(hardwareMap, "TurretMotor");
         TurretMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         TurretMotor.stopAndResetEncoder();
-        TurretMotor.setRunMode(Motor.RunMode.PositionControl);
+        TurretMotor.setRunMode(Motor.RunMode.RawPower);
         TurretController = new PIDFController(turretKP, turretKI, turretKD, 0);
-        imu = hardwareMap.get(IMU.class, "imu");
 
-        RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
-                RevHubOrientationOnRobot.LogoFacingDirection.UP;
-
-        RevHubOrientationOnRobot.UsbFacingDirection usbDirection =
-                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
-
-        RevHubOrientationOnRobot orientationOnRobot =
-                new RevHubOrientationOnRobot(logoDirection, usbDirection);
-
-        imu.initialize(new IMU.Parameters(orientationOnRobot));
-        imu.resetYaw();
-
-        lastRawHeading = getRawHeading();
-        continuousHeading = 0.0;
+        imu = new imuEx(hardwareMap, "imu");
+        imu.init();
 
 
 // por cada 4.8 vueltas del engrane del motor la torreta da una vuelta
@@ -127,10 +109,11 @@ public class teleop extends OpMode {
 
     @Override
     public void loop() {
-        double heading = getContinuousHeading();
+        double heading = imu.getContinuousHeading();
+
         double currentTurretTicks = TurretMotor.getCurrentPosition();
         double currentTurretAngle = turretTicksToDegrees(currentTurretTicks);
-        double desiredTurretAngle = turretStartAngle - heading;
+        double desiredTurretAngle = turretStartAngle + heading;
         double targetTurretAngle = findBestTurretTarget(desiredTurretAngle, currentTurretAngle);
         double targetTurretTicks = degreesToTurretTicks(targetTurretAngle);
         TurretController.setPIDF(turretKP, turretKI, turretKD, 0);
@@ -164,8 +147,7 @@ public class teleop extends OpMode {
         telemetry.addData("Turret error ticks", targetTurretTicks - currentTurretTicks);
         telemetry.addData("Ticks per turret rev", getTicksPerTurretRev());
         telemetry.addData("Solvers ticks", TurretMotor.getCurrentPosition());
-        telemetry.addData("SDK ticks", TurretMotor.motor.getCurrentPosition());
-
+        telemetry.addData("SDK ticks", TurretMotor.motorEx.getCurrentPosition());
 
         double y  = -gamepad1.left_stick_y;
         double x  =  gamepad1.left_stick_x;
@@ -222,30 +204,8 @@ public class teleop extends OpMode {
         return Math.max(min, Math.min(max, value));
     }
 
-    public double angleDelta(double current, double target) {
-        double delta = target - current;
 
-        while (delta > 180.0) {
-            delta -= 360.0;
-        }
 
-        while (delta < -180.0) {
-            delta += 360.0;
-        }
-
-        return delta;
-    }
-
-    public double getContinuousHeading() {
-        double rawHeading = getRawHeading();
-
-        double delta = angleDelta(lastRawHeading, rawHeading);
-
-        continuousHeading += delta;
-        lastRawHeading = rawHeading;
-
-        return continuousHeading;
-    }
     public double getTicksPerTurretRev() {
         return motorEncoderTicksPerRev * motorGearboxRatio * turretExternalGearRatio;
     }
@@ -287,8 +247,6 @@ public class teleop extends OpMode {
 
         return clamp(desiredAngle, turretMinAngle, turretMaxAngle);
     }
-    public double getRawHeading() {
-        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-    }
+
 
 }
