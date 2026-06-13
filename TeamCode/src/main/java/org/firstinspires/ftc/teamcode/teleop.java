@@ -51,6 +51,7 @@ public class teleop extends OpMode {
 
 
     public static double turretStartAngle = 90.0;
+    public static double turretToleranceTicks = 1.5;
 
     // Límites de software.
 // Ajusta estos valores a lo que realmente aguante tu torreta.
@@ -115,14 +116,14 @@ public class teleop extends OpMode {
         double currentTurretAngle = turretTicksToDegrees(currentTurretTicks);
         double desiredTurretAngle = turretStartAngle + heading;
         double targetTurretAngle = findBestTurretTarget(desiredTurretAngle, currentTurretAngle);
-        double targetTurretTicks = degreesToTurretTicks(targetTurretAngle);
+        double targetTurretTicks = Math.round(degreesToTurretTicks(targetTurretAngle) * 10.0) / 10.0;
         TurretController.setPIDF(turretKP, turretKI, turretKD, 0);
         TurretController.setSetPoint(targetTurretTicks);
         double turretPower = TurretController.calculate(currentTurretTicks);
         turretPower = clamp(turretPower, -turretMaxPower, turretMaxPower);
         double turretErrorTicks = targetTurretTicks - currentTurretTicks;
 
-        if (Math.abs(turretErrorTicks) < 8) {
+        if (Math.abs(turretErrorTicks) <= turretToleranceTicks) {
             turretPower = 0;
         }
 
@@ -227,7 +228,7 @@ public class teleop extends OpMode {
         double bestDistance = Double.MAX_VALUE;
         boolean foundValid = false;
 
-        for (int i = -2; i <= 2; i++) {
+        for (int i = -64; i <= 64; i++) {
             double candidate = desiredAngle + 360.0 * i;
 
             if (candidate >= turretMinAngle && candidate <= turretMaxAngle) {
