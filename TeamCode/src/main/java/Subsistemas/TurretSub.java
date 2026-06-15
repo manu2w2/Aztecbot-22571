@@ -8,13 +8,18 @@ import com.seattlesolvers.solverslib.controller.PIDFController;
 import com.seattlesolvers.solverslib.hardware.motors.Motor;
 import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
 
-import utilidades.imuEx;
+import org.firstinspires.ftc.teamcode.GoBildaPinpointDriver;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
+
 
 @Configurable
 public class TurretSub extends SubsystemBase {
 
     private final MotorEx TurretMotor;
-    private final imuEx imu;
+    private final GoBildaPinpointDriver pinpoint;
+
     private final PIDFController TurretController;
 
     public static double turretKP = 0.015;
@@ -45,20 +50,28 @@ public class TurretSub extends SubsystemBase {
 
     private double turretPower;
 
-    public TurretSub(final HardwareMap hM, final String turretMotorName, final String imuName) {
+    public TurretSub(final HardwareMap hM, final String turretMotorName, final String pinpointName) {
         TurretMotor = new MotorEx(hM, turretMotorName);
         TurretMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         TurretMotor.stopAndResetEncoder();
         TurretMotor.setRunMode(Motor.RunMode.RawPower);
 
         TurretController = new PIDFController(turretKP, turretKI, turretKD,0);
+        pinpoint = hM.get(GoBildaPinpointDriver.class, pinpointName);
+        pinpoint.resetPosAndIMU();
 
-        imu = new imuEx(hM, imuName);
-        imu.init();
+
     }
     @Override
     public void periodic() {
-        heading = imu.getContinuousHeading();
+        pinpoint.update();
+
+        if (pinpoint.getDeviceStatus() != GoBildaPinpointDriver.DeviceStatus.READY) {
+            stop();
+            return;}
+        heading = pinpoint.getHeading(UnnormalizedAngleUnit.DEGREES);
+
+
         if (enabled){
 
             currentTicks = TurretMotor.getCurrentPosition();
@@ -143,9 +156,17 @@ public class TurretSub extends SubsystemBase {
     public void enable() {enabled = true;}
     public void disable(){enabled = false; stop();}
     public boolean isEnabled(){return enabled;}
-    public void resetHeading() {imu.reset();}
-    public void resetEncoder(){TurretMotor.stopAndResetEncoder();}
-    public void resetAll(){resetEncoder();resetHeading();}
+    public void resetHeading() {
+        pinpoint.setHeading(0.0, AngleUnit.DEGREES);
+        pinpoint.update();
+        heading = 0.0;
+    }
+    public void resetEncoder() {
+        TurretMotor.stopAndResetEncoder();
+        TurretMotor.setRunMode(Motor.RunMode.RawPower);
+        currentTicks = 0;
+        currentAngle = turretStartAngle;}
+    public void resetAll(){resetEncoder();resetHeading(); stop();}
     public void stop() {
         TurretMotor.stopMotor();
         turretPower = 0;
@@ -178,7 +199,19 @@ public class TurretSub extends SubsystemBase {
     public double getAppliedPower() {
         return turretPower;
     }
+    public GoBildaPinpointDriver.DeviceStatus getPinpointStatus() {
+        return pinpoint.getDeviceStatus();
+    }
 
+    public double getPinpointFrequency() {
+        return pinpoint.getFrequency();
+    }
+
+    public double getHeadingVelocity() {
+        return pinpoint.getHeadingVelocity(
+                UnnormalizedAngleUnit.DEGREES
+        );
+    }
 
 }
 
