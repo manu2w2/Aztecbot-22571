@@ -1,5 +1,7 @@
 package Subsistemas;
 
+import static org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.normalizeDegrees;
+
 import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -36,7 +38,7 @@ public class TurretSub extends SubsystemBase {
     public static double turretExternalGearRatio = 4.8;
 
     // Potencia máxima
-    public static double turretMaxPower = 0.50;
+    public static double turretMaxPower = 0.80;
 
     /*
      * Ángulo de la torreta cuando el encoder está en 0.
@@ -45,17 +47,23 @@ public class TurretSub extends SubsystemBase {
     public static double turretStartAngle = 90.0;
 
     // Tolerancia del PID
-    public static double turretToleranceTicks = 1.5;
+    public static double turretToleranceTicks = 2.0;
 
     // Límites físicos de la torreta
-    public static double turretMinAngle = 0.0;
-    public static double turretMaxAngle = 180.0;
+    public static double turretMinAngle = -360.0;
+    public static double turretMaxAngle = 360.0;
 
     /*
      * Cambia a -1 si la torreta corrige hacia
      * el lado contrario al movimiento del robot.
      */
     public static double headingDirection = 1.0;
+
+    public static double thetaDirection = 1.0;
+
+    public static double minimumGoalDistance = 15.0;
+
+    public static double thetaSmoothing = 0.15;
 
     // Estado del subsistema
     private boolean enabled = true;
@@ -72,9 +80,19 @@ public class TurretSub extends SubsystemBase {
     private double errorTicks = 0.0;
     private double turretPower = 0.0;
 
-    private final static double goalX = 0;
-    private final static double goalY = 0;
+    private final static double goalX = 150;
+    private final static double goalY = 30;
 
+    private double goalDistance = 0.0;
+    private double goalBearing = 0.0;
+
+    private double initialGoalBearing = 0.0;
+    private boolean goalReferenceCaptured = false;
+
+    private double rawTheta = 0.0;
+    private double theta = 0.0;
+    private double robotX;
+    private double robotY;
     DistanceUnit distanceUnit = DistanceUnit.CM;
 
 
@@ -105,10 +123,7 @@ public class TurretSub extends SubsystemBase {
         currentTicks = turretMotor.getCurrentPosition();
         currentAngle = turretTicksToDegrees(currentTicks);
 
-        double robotY = pinpoint.getPosY(distanceUnit);
-        double robotX = pinpoint.getPosX(distanceUnit);
 
-        double theta = findTheta(robotX, robotY);
 
 
         /*
@@ -121,6 +136,67 @@ public class TurretSub extends SubsystemBase {
         }
 
         heading = pinpoint.getHeading(UnnormalizedAngleUnit.DEGREES);
+        robotY = pinpoint.getPosY(distanceUnit);
+        robotX = pinpoint.getPosX(distanceUnit);
+
+        double theta = findTheta(robotX, robotY);
+
+        double deltaX = goalX - robotX;
+        double deltaY = goalY - robotY;
+
+        goalDistance = Math.hypot(deltaX, deltaY);
+
+        if (goalDistance >= minimumGoalDistance) {
+
+            /*
+             * 0 grados apunta hacia el eje +Y.
+             *
+             * Si tus ejes están invertidos, después podemos
+             * cambiar el orden o los signos.
+             */
+            goalBearing = Math.toDegrees(
+                    Math.atan2(deltaX, deltaY)
+            );
+
+            goalBearing = normalizeDegrees(goalBearing);
+
+            /*
+             * En la posición inicial la torreta está en 90°
+             * y ya se encuentra alineada con la referencia.
+             *
+             * Por eso el primer ángulo hacia la goal se guarda
+             * como referencia y theta comienza en cero.
+             */
+            if (!goalReferenceCaptured) {
+
+                initialGoalBearing = goalBearing;
+                goalReferenceCaptured = true;
+
+                rawTheta = 0.0;
+                theta = 0.0;
+            } else {
+
+                rawTheta = normalizeDegrees(
+                        goalBearing - initialGoalBearing
+                );
+
+                /*
+                 * Filtro angular. Se filtra la diferencia
+                 * normalizada para evitar problemas al cruzar
+                 * de 180° a -180°.
+                 */
+                double thetaDifference = normalizeDegrees(
+                        rawTheta - theta
+                );
+
+                theta = normalizeDegrees(
+                        theta
+                                + thetaDifference
+                                * thetaSmoothing
+                );
+            }
+        }
+
 
         if (!enabled) {
             stopMotor();
@@ -132,7 +208,7 @@ public class TurretSub extends SubsystemBase {
          * para mantener la orientación de la torreta.
          */
         desiredAngle = turretStartAngle
-                + heading + theta * headingDirection;
+                + heading * headingDirection - theta * thetaDirection;
 
         targetAngle = findBestTurretTarget(
                 desiredAngle,
@@ -230,7 +306,7 @@ public class TurretSub extends SubsystemBase {
     private double findTheta(double robotX, double robotY) {
         double deltaX = TurretSub.goalX - robotX;
         double deltaY = TurretSub.goalY - robotY;
-        return Math.toDegrees(Math.atan2(deltaX, deltaY));
+        return Math.toDegrees(Math.atan2(deltaY, deltaX));
     }
     private double findBestTurretTarget(double desiredAngle, double currentAngle) {
         double bestAngle = desiredAngle;
@@ -363,6 +439,19 @@ public class TurretSub extends SubsystemBase {
         turretPower = 0.0;
     }
 
+    public void resetGoalReference() {
+
+        goalReferenceCaptured = false;
+
+        initialGoalBearing = 0.0;
+        goalBearing = 0.0;
+
+        rawTheta = 0.0;
+        theta = 0.0;
+
+        turretController.reset();
+    }
+
 
     // Getters para telemetría
 
@@ -414,7 +503,33 @@ public class TurretSub extends SubsystemBase {
     public double getPinpointFrequency() {
         return pinpoint.getFrequency();
     }
+    public double getRobotX() {
+        return robotX;
+    }
 
+    public double getRobotY() {
+        return robotY;
+    }
+
+    public double getGoalDistance() {
+        return goalDistance;
+    }
+
+    public double getGoalBearing() {
+        return goalBearing;
+    }
+
+    public double getInitialGoalBearing() {
+        return initialGoalBearing;
+    }
+
+    public double getRawTheta() {
+        return rawTheta;
+    }
+
+    public double getTheta() {
+        return theta;
+    }
 
     public double getHeadingVelocity() {
         return pinpoint.getHeadingVelocity(
