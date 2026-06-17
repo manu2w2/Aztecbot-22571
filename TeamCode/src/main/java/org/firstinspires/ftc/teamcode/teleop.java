@@ -11,89 +11,91 @@ import com.seattlesolvers.solverslib.controller.PIDFController;
 import com.seattlesolvers.solverslib.hardware.motors.Motor;
 import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
 import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
+
 import utilidades.imuEx;
-
-
 
 @Config
 @TeleOp(name = "TELEOPBETA")
 public class teleop extends OpMode {
 
-
-
-    DcMotorEx flywheelMotor, flywheelMotor2, Transfer;
+    public DcMotorEx flywheelMotor, flywheelMotor2;
     PIDFController shooterController;
+
+    // === TUNABLE EN DASHBOARD ===
+    public static double targetVel = 750;
+
+    public static double shooterKP = 0.05;
+    public static double shooterKI = 0.0;
+    public static double shooterKD = 0.0;
+    public static double shooterKF = 0.000525;
+
+    public static double shooterTolerance = 50;
+
+    // Opcional: tolerancia de velocidad (puedes tunearla también)
+    public static double shooterVelocityTolerance = 30;
+
+    DcMotorEx Transfer;
+    ServoEx ServoTope;
+    MotorEx TurretMotor;
     PIDFController TurretController;
     imuEx imu;
-    MotorEx TurretMotor;
-    ServoEx ServoTope;
+
     boolean shooterRunning = false;
     boolean transferRunning = false;
 
-
     DcMotorEx frontLeft, frontRight, backLeft, backRight;
 
-    public static double targetVel = 750;
-    public static double kP = 0.05;
-    public static double kI = 0.0;
-    public static double kD = 0.0;
-    public static double kV = 0.000525;
-
-    public static double turretKP = 0.015;
+    // === TURRET (sin cambios) ===
+    public static double turretKP = 0.00940;
     public static double turretKI = 0.0;
     public static double turretKD = 0.000;
-
     public static double motorEncoderTicksPerRev = 28.0;
     public static double motorGearboxRatio = 15.0;
     public static double turretExternalGearRatio = 4.8;
-
     public static double turretMaxPower = 0.50;
-
-
     public static double turretStartAngle = 90.0;
     public static double turretToleranceTicks = 1.5;
-
-    // Límites de software.
-// Ajusta estos valores a lo que realmente aguante tu torreta.
     public static double turretMinAngle = 0.0;
     public static double turretMaxAngle = 180.0;
 
-
     @Override
     public void init() {
+
         flywheelMotor  = hardwareMap.get(DcMotorEx.class, "shooter");
         flywheelMotor2 = hardwareMap.get(DcMotorEx.class, "shooter2");
-        Transfer       = hardwareMap.get(DcMotorEx.class, "Transfer");
+        flywheelMotor.setDirection(DcMotorEx.Direction.REVERSE);
+        flywheelMotor2.setDirection(DcMotorEx.Direction.FORWARD);
+        flywheelMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+        flywheelMotor2.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+        flywheelMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        flywheelMotor2.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
+        shooterController = new PIDFController(shooterKP, shooterKI, shooterKD, 0.000422);
+        shooterController.setTolerance(shooterTolerance);
+
+        Transfer = hardwareMap.get(DcMotorEx.class, "Transfer");
         ServoTope = new ServoEx(hardwareMap, "ServoTope");
 
-
+        // Turret
         TurretMotor = new MotorEx(hardwareMap, "TurretMotor");
         TurretMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         TurretMotor.stopAndResetEncoder();
         TurretMotor.setRunMode(Motor.RunMode.RawPower);
+
         TurretController = new PIDFController(turretKP, turretKI, turretKD, 0);
 
         imu = new imuEx(hardwareMap, "imu");
         imu.init();
 
-
-// por cada 4.8 vueltas del engrane del motor la torreta da una vuelta
-
-        flywheelMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        flywheelMotor2.setDirection(DcMotorSimple.Direction.FORWARD);
-        flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        flywheelMotor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        flywheelMotor2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         Transfer.setDirection(DcMotorSimple.Direction.REVERSE);
         Transfer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         Transfer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        frontLeft  = hardwareMap.get(DcMotorEx.class, "frontLeft");
+        // Drivetrain
+        frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
-        backLeft   = hardwareMap.get(DcMotorEx.class, "backLeft");
-        backRight  = hardwareMap.get(DcMotorEx.class, "backRight");
+        backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
+        backRight = hardwareMap.get(DcMotorEx.class, "backRight");
 
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -104,123 +106,109 @@ public class teleop extends OpMode {
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        shooterController = new PIDFController(kP, kI, kD, 0);
     }
 
     @Override
     public void loop() {
-        double heading = imu.getContinuousHeading();
+        double heading = 0;
 
+        // === TURRET ===
         double currentTurretTicks = TurretMotor.getCurrentPosition();
         double currentTurretAngle = turretTicksToDegrees(currentTurretTicks);
         double desiredTurretAngle = turretStartAngle + heading;
         double targetTurretAngle = findBestTurretTarget(desiredTurretAngle, currentTurretAngle);
         double targetTurretTicks = Math.round(degreesToTurretTicks(targetTurretAngle) * 10.0) / 10.0;
+
         TurretController.setPIDF(turretKP, turretKI, turretKD, 0);
         TurretController.setSetPoint(targetTurretTicks);
         double turretPower = TurretController.calculate(currentTurretTicks);
         turretPower = clamp(turretPower, -turretMaxPower, turretMaxPower);
-        double turretErrorTicks = targetTurretTicks - currentTurretTicks;
 
+        double turretErrorTicks = targetTurretTicks - currentTurretTicks;
         if (Math.abs(turretErrorTicks) <= turretToleranceTicks) {
             turretPower = 0;
         }
-
-        if (currentTurretAngle <= turretMinAngle && turretPower < 0) {
-            turretPower = 0;
-        }
-
-        if (currentTurretAngle >= turretMaxAngle && turretPower > 0) {
-            turretPower = 0;
-        }
-
+        if (currentTurretAngle <= turretMinAngle && turretPower < 0) turretPower = 0;
+        if (currentTurretAngle >= turretMaxAngle && turretPower > 0) turretPower = 0;
 
         TurretMotor.set(turretPower);
 
-        telemetry.addData("Robot heading", heading);
-        telemetry.addData("Current turret angle", currentTurretAngle);
-        telemetry.addData("Desired turret angle", desiredTurretAngle);
-        telemetry.addData("Target turret angle", targetTurretAngle);
-        telemetry.addData("Turret power", turretPower);
-        telemetry.addData("Current turret ticks", currentTurretTicks);
-        telemetry.addData("Target turret ticks", targetTurretTicks);
-        telemetry.addData("Turret error ticks", targetTurretTicks - currentTurretTicks);
-        telemetry.addData("Ticks per turret rev", getTicksPerTurretRev());
-        telemetry.addData("Solvers ticks", TurretMotor.getCurrentPosition());
-        telemetry.addData("SDK ticks", TurretMotor.motorEx.getCurrentPosition());
-
-        double y  = -gamepad1.left_stick_y;
-        double x  =  gamepad1.left_stick_x;
-        double rx =  gamepad1.right_stick_x;
+        // === DRIVETRAIN ===
+        double y = -gamepad1.left_stick_y;
+        double x = gamepad1.left_stick_x;
+        double rx = gamepad1.right_stick_x;
 
         double fl = y + x + rx;
         double fr = y - x - rx;
         double bl = y - x + rx;
         double br = y + x - rx;
 
-        double max = Math.max(1.0, Math.max(Math.abs(fl),
-                Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
-
+        double max = Math.max(1.0, Math.max(Math.abs(fl), Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
         frontLeft.setPower(fl / max);
         frontRight.setPower(fr / max);
         backLeft.setPower(bl / max);
         backRight.setPower(br / max);
 
+        // === SERVO ===
+        ServoTope.set(gamepad2.left_bumper ? 0.05 : 0.5);
 
-//
-        if (gamepad2.left_bumper) {
-            ServoTope.set(0.05);
-        } else {
-            ServoTope.set(0.5
-            );
-        }
-
+        // === SHOOTER PIDF (AHORA TOTALMENTE TUNEABLE) ===
         if (gamepad2.aWasPressed()) shooterRunning = !shooterRunning;
 
-
-
         if (shooterRunning) {
-            double currentVelocity = (flywheelMotor.getVelocity() + flywheelMotor2.getVelocity()) / 2;
-            shooterController.setPIDF(kP, kI, kD, 0);
+            // Actualizamos los coeficientes cada loop (para que el dashboard funcione en tiempo real)
+            shooterController.setPIDF(shooterKP, shooterKI, shooterKD, shooterKF);
             shooterController.setSetPoint(targetVel);
-            telemetry.addData("velocidad: ", currentVelocity);
+            shooterController.setTolerance(shooterTolerance);
 
-            double power = (kV * targetVel) + shooterController.calculate(currentVelocity);
+            double currentVelocity = (flywheelMotor.getVelocity() + flywheelMotor2.getVelocity()) / 2.0;
+            double curretVelocity2 = currentVelocity;
+
+            double power = shooterController.calculate(curretVelocity2);
+
             flywheelMotor.setPower(power);
             flywheelMotor2.setPower(power);
+
+            telemetry.addData("Target Vel", targetVel);
+            telemetry.addData("Current Vel", currentVelocity);
+            telemetry.addData("Shooter Error", shooterController.getPositionError());
+            telemetry.addData("At Setpoint", shooterController.atSetPoint());
+            telemetry.addData("Power", power);
         } else {
             flywheelMotor.setPower(0);
             flywheelMotor2.setPower(0);
+            shooterController.reset();
         }
 
-
+        // === TRANSFER ===
         if (gamepad2.yWasPressed()) transferRunning = !transferRunning;
         Transfer.setPower(transferRunning ? 1 : 0);
+
+        // Telemetry general
+        telemetry.addData("Robot heading", heading);
+        telemetry.addData("Current turret angle", currentTurretAngle);
+        telemetry.addData("Target turret angle", targetTurretAngle);
+        telemetry.addData("Turret power", turretPower);
 
         telemetry.update();
     }
 
+    // ==================== MÉTODOS AUXILIARES ====================
+
     public double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
-
-
 
     public double getTicksPerTurretRev() {
         return motorEncoderTicksPerRev * motorGearboxRatio * turretExternalGearRatio;
     }
 
     public double degreesToTurretTicks(double turretAngle) {
-        double ticksPerTurretRev = getTicksPerTurretRev();
-
-        return (turretAngle - turretStartAngle) * ticksPerTurretRev / 360.0;
+        return (turretAngle - turretStartAngle) * getTicksPerTurretRev() / 360.0;
     }
 
     public double turretTicksToDegrees(double ticks) {
-        double ticksPerTurretRev = getTicksPerTurretRev();
-
-        return turretStartAngle + ticks * 360.0 / ticksPerTurretRev;
+        return turretStartAngle + ticks * 360.0 / getTicksPerTurretRev();
     }
 
     public double findBestTurretTarget(double desiredAngle, double currentAngle) {
@@ -230,10 +218,8 @@ public class teleop extends OpMode {
 
         for (int i = -64; i <= 64; i++) {
             double candidate = desiredAngle + 360.0 * i;
-
             if (candidate >= turretMinAngle && candidate <= turretMaxAngle) {
                 double distance = Math.abs(candidate - currentAngle);
-
                 if (distance < bestDistance) {
                     bestDistance = distance;
                     bestAngle = candidate;
@@ -241,13 +227,7 @@ public class teleop extends OpMode {
                 }
             }
         }
-
-        if (foundValid) {
-            return bestAngle;
-        }
-
+        if (foundValid) return bestAngle;
         return clamp(desiredAngle, turretMinAngle, turretMaxAngle);
     }
-
-
 }
