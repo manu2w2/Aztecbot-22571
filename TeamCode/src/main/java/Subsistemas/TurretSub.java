@@ -62,7 +62,6 @@ public class TurretSub extends SubsystemBase {
 
     // Variables para telemetría
     private double heading = 0.0;
-    private double theta = 0.0;
     private double currentTicks = 0.0;
     private double currentAngle = turretStartAngle;
 
@@ -73,11 +72,8 @@ public class TurretSub extends SubsystemBase {
     private double errorTicks = 0.0;
     private double turretPower = 0.0;
 
-    private double positionXY;
-    private final double goalX = 0;
-    private final double goalY = 0;
-    private double robotX;
-    private  double robotY;
+    private final static double goalX = 0;
+    private final static double goalY = 0;
 
     DistanceUnit distanceUnit = DistanceUnit.CM;
 
@@ -109,10 +105,10 @@ public class TurretSub extends SubsystemBase {
         currentTicks = turretMotor.getCurrentPosition();
         currentAngle = turretTicksToDegrees(currentTicks);
 
-        robotY = pinpoint.getPosY(distanceUnit);
-        robotX = pinpoint.getPosX(distanceUnit);
+        double robotY = pinpoint.getPosY(distanceUnit);
+        double robotX = pinpoint.getPosX(distanceUnit);
 
-        theta = findTheta(goalX, goalY, robotX, robotY);
+        double theta = findTheta(robotX, robotY);
 
 
         /*
@@ -231,9 +227,9 @@ public class TurretSub extends SubsystemBase {
                 / getTicksPerTurretRev();
     }
 
-    private double findTheta(double goalX, double goalY,double robotX,double robotY) {
-        double deltaX = goalX - robotX;
-        double deltaY = goalY - robotY;
+    private double findTheta(double robotX, double robotY) {
+        double deltaX = TurretSub.goalX - robotX;
+        double deltaY = TurretSub.goalY - robotY;
         return Math.toDegrees(Math.atan2(deltaX, deltaY));
     }
     private double findBestTurretTarget(double desiredAngle, double currentAngle) {
