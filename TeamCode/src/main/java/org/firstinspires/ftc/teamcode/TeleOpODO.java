@@ -14,7 +14,7 @@ import Subsistemas.TurretSub;
 
 
 @Config
-@TeleOp(name = "TELEOPBETA")
+@TeleOp(name = "TELEOPTHETA")
 public class TeleOpODO extends OpMode {
 
     // Shooter
@@ -482,6 +482,44 @@ public class TeleOpODO extends OpMode {
 
 
     private void addTurretTelemetry() {
+
+        telemetry.addData("Robot X", turret.getRobotX());
+        telemetry.addData("Robot Y", turret.getRobotY());
+
+        telemetry.addData(
+                "Distancia goal",
+                turret.getGoalDistance()
+        );
+
+        telemetry.addData(
+                "Bearing goal",
+                turret.getGoalBearing()
+        );
+
+        telemetry.addData(
+                "Bearing inicial",
+                turret.getInitialGoalBearing()
+        );
+
+        telemetry.addData(
+                "Theta sin filtro",
+                turret.getRawTheta()
+        );
+
+        telemetry.addData(
+                "Theta filtrado",
+                turret.getTheta()
+        );
+
+        telemetry.addData(
+                "Heading",
+                turret.getHeading()
+        );
+
+        telemetry.addData(
+                "Ángulo deseado",
+                turret.getDesiredAngle()
+        );
 
         telemetry.addLine("----- TURRET -----");
 
