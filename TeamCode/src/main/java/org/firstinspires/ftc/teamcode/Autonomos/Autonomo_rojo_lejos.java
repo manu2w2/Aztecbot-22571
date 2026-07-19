@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 public class Autonomo_rojo_lejos extends CommandOpMode {
     private Follower follower;
 
-    private final Pose startPose = new Pose(85.3, 6.688, Math.toRadians(90));
+    private final Pose startPose = new Pose(85.300, 6.688, Math.toRadians(90));
 
     // PathChains (sin cambiar nombres ni trayectorias)
     private PathChain ciclo1, ciclo2, ciclo2part2, Ciclo3, Ciclo3parte2;

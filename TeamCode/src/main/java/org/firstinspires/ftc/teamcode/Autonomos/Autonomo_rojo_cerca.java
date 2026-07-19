@@ -22,7 +22,7 @@ public class Autonomo_rojo_cerca extends CommandOpMode {
     private IntakeSubsystem_Autonomous intake;
     private TurretSubsystem_Autonomous turret;
 
-    private final Pose startPose = new Pose(38.285, 134.628, Math.toRadians(-90));
+    private final Pose startPose = new Pose(103.240, 134.628, Math.toRadians(-90));
 
     // PathChains (sin cambiar nombres ni trayectorias)
     private PathChain ciclo1, ciclo2, ciclo2part2, Ciclo3, Ciclo3parte2, Ciclo4,Ciclo4parte2,Ciclo5,CIclo5part2;
