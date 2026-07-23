@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 public class Autonomo_rojo_lejos extends CommandOpMode {
     private Follower follower;
 
-    private final Pose startPose = new Pose(85.300, 6.688, Math.toRadians(90));
+    private final Pose startPose = new Pose(87.71692546583851, 9.405, Math.toRadians(180));
 
     // PathChains (sin cambiar nombres ni trayectorias)
     private PathChain ciclo1, ciclo2, ciclo2part2, Ciclo3, Ciclo3parte2;
@@ -42,11 +42,11 @@ public class Autonomo_rojo_lejos extends CommandOpMode {
         ciclo1 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Pose(85.300, 6.688),
+                                new Pose(87.71692546583851, 9.405),
                                 new Pose(85.376, 18.285)
                         )
                 )
-                .setConstantHeadingInterpolation(Math.toRadians(90))
+                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
                 .build();
 
         ciclo2 = follower.pathBuilder()

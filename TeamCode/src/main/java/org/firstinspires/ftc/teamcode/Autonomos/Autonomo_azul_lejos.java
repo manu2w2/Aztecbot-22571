@@ -25,7 +25,7 @@ public class Autonomo_azul_lejos extends CommandOpMode {
     private IntakeSubsystem_Autonomous intake;
     private TurretSubsystem_Autonomous turret;
 
-    private final Pose startPose = new Pose(56, 6.688, Math.toRadians(90));
+    private final Pose startPose = new Pose(53.803, 9.405, Math.toRadians(0));
 
     // PathChains (sin cambiar nombres ni trayectorias)
     private PathChain ciclo1, ciclo2, ciclo2part2, Ciclo3, Ciclo3parte2;
@@ -52,11 +52,11 @@ public class Autonomo_azul_lejos extends CommandOpMode {
         ciclo1 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Pose(56.000, 6.688),
+                                new Pose(53.803, 9.405),
                                 new Pose(56.000, 18.723)
                         )
                 )
-                .setConstantHeadingInterpolation(Math.toRadians(90))
+                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(90))
                 .build();
 
         ciclo2 = follower.pathBuilder()

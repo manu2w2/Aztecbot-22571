@@ -9,7 +9,7 @@ public class IntakeSubsystem_Autonomous extends SubsystemBase {
         intake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         intake.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
     }
-    public void setPower(double Velocity) {
+    public void setVelocity(double Velocity) {
         intake.setVelocity(Velocity);
     }
     public void stop() {

@@ -21,7 +21,7 @@ public class SetIntakeVelocityCommand extends CommandBase {
 
     @Override
     public void initialize() {
-        intake.setPower(Velocity);
+        intake.setVelocity(Velocity);
     }
 
     @Override
