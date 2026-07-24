@@ -153,7 +153,7 @@ public class Autonomo_rojo_cerca extends CommandOpMode {
                 .addPath(
                         new BezierLine(
                                 new Pose(87.574, 82.888),
-                                new Pose(125.051, 82.302)
+                                new Pose(122.051, 82.302)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(0))
@@ -162,7 +162,7 @@ public class Autonomo_rojo_cerca extends CommandOpMode {
         CIclo5part2 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Pose(125.051, 82.302),
+                                new Pose(122.051, 82.302),
                                 new Pose(87.574, 82.888)
                         )
                 )
@@ -190,14 +190,12 @@ public class Autonomo_rojo_cerca extends CommandOpMode {
 
                 // === Ciclo 2 ===
                 new ParallelCommandGroup(
-                        new SpinUpShooterCommand(shooter, 400, 20),
                         new FollowPathCommand(follower, ciclo2, true, 1),
                         new CloseTopeCommand(Tope)
                 ),
                 new WaitCommand(200),
                 new ParallelCommandGroup(
                         new FollowPathCommand(follower, ciclo2part2, true, 1),
-                        new SpinUpShooterCommand(shooter, Velocity1, 20),
                         new SetIntakeVelocityCommand(intake, 0)
                 ),
                 new WaitCommand(200),
@@ -211,7 +209,6 @@ public class Autonomo_rojo_cerca extends CommandOpMode {
                 // === Ciclo 3 y 4 (parte problemática corregida) ===
                 new ParallelCommandGroup(
                         new SetTurretPositionCommand(turret, TurretPosition2),
-                        new SpinUpShooterCommand(shooter, 400, 20),
                         new FollowPathCommand(follower, Ciclo3, true, 1),
                         new SetIntakeVelocityCommand(intake, 1400)
                 ),
@@ -220,7 +217,6 @@ public class Autonomo_rojo_cerca extends CommandOpMode {
                 // Secuencia de retorno e intake (usamos Sequential para evitar conflictos)
                 new ParallelCommandGroup(
                         new FollowPathCommand(follower, Ciclo3parte2, true, 1),
-                        new SpinUpShooterCommand(shooter, Velocity1, 20),
                         new SetIntakeVelocityCommand(intake, 1700)
                 ),
                 new WaitCommand(1300),
@@ -228,13 +224,11 @@ public class Autonomo_rojo_cerca extends CommandOpMode {
 
                 new ParallelCommandGroup(
                         new SetIntakeVelocityCommand(intake, 1500),
-                        new SpinUpShooterCommand(shooter, 400, 20),
                         new FollowPathCommand(follower, Ciclo4, true, 1)
                 ),
                 new WaitCommand(1500),
 
                 new ParallelCommandGroup(
-                        new SpinUpShooterCommand(shooter, Velocity1, 20),
                         new FollowPathCommand(follower, Ciclo4parte2, true, 1),
                         new SetIntakeVelocityCommand(intake, 0)
                 ),
