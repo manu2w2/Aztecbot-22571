@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Autonomos;
+package org.firstinspires.ftc.teamcode.opModes.Autonomos;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;

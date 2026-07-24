@@ -1,22 +1,22 @@
 package org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS;
 
-import Subsistemas.ServosSubsystem_Autonomous;
+import Subsistemas.HoodSubsystem;
 import com.seattlesolvers.solverslib.command.CommandBase;
 
 public class SetHoodPositionCommand extends CommandBase {
 
-    private final ServosSubsystem_Autonomous servos;
+    private final HoodSubsystem hood;
     private final double position;
 
-    public SetHoodPositionCommand(ServosSubsystem_Autonomous servos, double position) {
-        this.servos = servos;
+    public SetHoodPositionCommand(HoodSubsystem hood, double position) {
+        this.hood = hood;
         this.position = position;
-        addRequirements(servos);
+        addRequirements(hood);
     }
 
     @Override
     public void initialize() {
-        servos.PositionHood(position);
+        hood.setPosition(position);
     }
 
     @Override

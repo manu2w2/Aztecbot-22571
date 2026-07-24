@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Autonomos;
+package org.firstinspires.ftc.teamcode.opModes.Autonomos;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
@@ -20,21 +20,24 @@ import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetIntakeVelocityComman
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetTurretPositionCommand;
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SpinUpShooterCommand;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+import Subsistemas.HoodSubsystem;
 import Subsistemas.IntakeSubsystem_Autonomous;
-import Subsistemas.ServosSubsystem_Autonomous;
 import Subsistemas.ShooterSubsystem;
+import Subsistemas.TopeSubsystem;
 import Subsistemas.TurretSubsystem_Autonomous;
 @Autonomous(name = "Autonomo azul cerca", group = "Autonomous")
 @Configurable
 public class Autonomo_azul_cerca extends CommandOpMode {
     private Follower follower;
-    public static double Velocity1= 0;
-    public static double TurretPosition1 = 191;
-    public static double TurretPosition2 = 100;
+    public static double Velocity1= 1160;
+    public static double TurretPosition1 = 197;
+    public static double TurretPosition2 = 42;
     private IntakeSubsystem_Autonomous intake;
     private TurretSubsystem_Autonomous turret;
     private ShooterSubsystem shooter;
-    private ServosSubsystem_Autonomous servos;
+    private HoodSubsystem hood;
+    private TopeSubsystem Tope;
     private final Pose startPose = new Pose(24.223050486238442, 126.05918501060792, Math.toRadians(53.5));
 
     // PathChains (sin cambiar nombres ni trayectorias)
@@ -47,6 +50,8 @@ public class Autonomo_azul_cerca extends CommandOpMode {
         intake = new IntakeSubsystem_Autonomous(hardwareMap);
         turret = new TurretSubsystem_Autonomous(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap, telemetry);
+        hood = new HoodSubsystem(hardwareMap);
+        Tope = new TopeSubsystem(hardwareMap);
 
         buildPaths();
         waitForStart();
@@ -76,32 +81,32 @@ public class Autonomo_azul_cerca extends CommandOpMode {
                 .build();
 
         Ciclo3 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(12.704, 58.332)))
-                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(144))
+                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(12.704, 57.332)))
+                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(141))
                 .build();
 
         Ciclo3parte2 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(12.704, 58.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
-                .setConstantHeadingInterpolation(Math.toRadians(144))
+                .addPath(new BezierCurve(new Pose(12.704, 57.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
+                .setConstantHeadingInterpolation(Math.toRadians(141))
                 .build();
 
         Ciclo4 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(12.704, 58.332)))
-                .setConstantHeadingInterpolation(Math.toRadians(144))
+                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(12.704, 57.332)))
+                .setConstantHeadingInterpolation(Math.toRadians(141))
                 .build();
 
         Ciclo4parte2 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(12.704, 58.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
-                .setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(180))
+                .addPath(new BezierCurve(new Pose(12.704, 57.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
+                .setLinearHeadingInterpolation(Math.toRadians(141), Math.toRadians(180))
                 .build();
 
         Ciclo5 = follower.pathBuilder()
-                .addPath(new BezierLine(new Pose(56.425, 82.888), new Pose(15.653, 82.522)))
+                .addPath(new BezierLine(new Pose(56.425, 82.888), new Pose(18.653, 82.522)))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
 
         CIclo5part2 = follower.pathBuilder()
-                .addPath(new BezierLine(new Pose(15.653, 82.522), new Pose(56.425, 82.888)))
+                .addPath(new BezierLine(new Pose(18.653, 82.522), new Pose(56.425, 82.888)))
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
 
@@ -110,98 +115,104 @@ public class Autonomo_azul_cerca extends CommandOpMode {
     private SequentialCommandGroup createAutonomousSequence() {
         return new SequentialCommandGroup(
 
+                // === Primer disparo + movimiento inicial ===
                 new ParallelCommandGroup(
-                        new SpinUpShooterCommand(shooter,Velocity1,20),
-                        new SetTurretPositionCommand(turret,TurretPosition1),
-                        new FollowPathCommand(follower, ciclo1, true, 0.95),
-                        new CloseTopeCommand(servos),
-                        new SetHoodPositionCommand(servos,0.2)
+                        new SpinUpShooterCommand(shooter, Velocity1, 20),
+                        new SetTurretPositionCommand(turret, TurretPosition1),
+                        new FollowPathCommand(follower, ciclo1, true, 1),
+                        new CloseTopeCommand(Tope),
+        new SetHoodPositionCommand(hood, 0.24)
                 ),
-                new WaitCommand(200),
+                        new WaitCommand(200),
                 new ParallelCommandGroup(
-                       new SetIntakeVelocityCommand(intake,1750),
-                        new OpenTopeCommand(servos)
+                        new SetIntakeVelocityCommand(intake, 1700),
+                        new OpenTopeCommand(Tope)
                 ),
-                new WaitCommand(1000),
+                new WaitCommand(1350),
 
+                // === Ciclo 2 ===
                 new ParallelCommandGroup(
-                        new SpinUpShooterCommand(shooter,400,20),
+                        new SpinUpShooterCommand(shooter, 400, 20),
                         new FollowPathCommand(follower, ciclo2, true, 1),
-                        new CloseTopeCommand(servos)
+                        new CloseTopeCommand(Tope)
                 ),
                 new WaitCommand(200),
                 new ParallelCommandGroup(
-                        new FollowPathCommand(follower,ciclo2part2,true,1),
-                        new SpinUpShooterCommand(shooter,Velocity1,20),
-                        new SetIntakeVelocityCommand(intake,0)),
+                        new FollowPathCommand(follower, ciclo2part2, true, 1),
+                        new SpinUpShooterCommand(shooter, Velocity1, 20),
+                        new SetIntakeVelocityCommand(intake, 0)
+                ),
                 new WaitCommand(200),
                 new ParallelCommandGroup(
-                        new SetIntakeVelocityCommand(intake,1750),
-                        new OpenTopeCommand(servos)
+                        new SetIntakeVelocityCommand(intake, 1700),
+                        new OpenTopeCommand(Tope)
                 ),
-                new WaitCommand(1000),
+                new WaitCommand(1300),
+                new CloseTopeCommand(Tope),
+
+                // === Ciclo 3 y 4 (parte problemática corregida) ===
                 new ParallelCommandGroup(
-                        new SetTurretPositionCommand(turret,TurretPosition2),
-                        new SpinUpShooterCommand(shooter,400,20),
+                        new SetTurretPositionCommand(turret, TurretPosition2),
+                        new SpinUpShooterCommand(shooter, 400, 20),
                         new FollowPathCommand(follower, Ciclo3, true, 1),
-                        new CloseTopeCommand(servos),
-                        new SetIntakeVelocityCommand(intake,1400)
+                        new SetIntakeVelocityCommand(intake, 1400)
                 ),
-                new WaitCommand(2000),
+                new WaitCommand(1500),
+
+                // Secuencia de retorno e intake (usamos Sequential para evitar conflictos)
                 new ParallelCommandGroup(
                         new FollowPathCommand(follower, Ciclo3parte2, true, 1),
-                        new SpinUpShooterCommand(shooter,   Velocity1,20),
-                        new WaitCommand(200),
-                        new ParallelCommandGroup(
-                              new SetIntakeVelocityCommand(intake,1750),
-                              new OpenTopeCommand(servos)
+                                new SpinUpShooterCommand(shooter, Velocity1, 20),
+                                new SetIntakeVelocityCommand(intake, 1700)
                         ),
-                        new WaitCommand(1000),
-                        new ParallelCommandGroup(
-                                new SetIntakeVelocityCommand(intake,1500),
-                                new SpinUpShooterCommand(shooter,400,20),
-                                new FollowPathCommand(follower, Ciclo4, true, 1),
-                                new CloseTopeCommand(servos)
-                        ),
-                        new WaitCommand(2500),
-                        new ParallelCommandGroup(
-                                new SpinUpShooterCommand(shooter,Velocity1,20),
-                                new FollowPathCommand(follower, Ciclo4parte2, true, 0.95),
-                                new SetIntakeVelocityCommand(intake,0))
-                        ),
-                        new WaitCommand(200),
-                        new ParallelCommandGroup(
-                                new SetIntakeVelocityCommand(intake,1750),
-                                new OpenTopeCommand(servos)
-                        ),
-                        new WaitCommand(1000),
+                        new WaitCommand(1300),
+                        new OpenTopeCommand(Tope),
 
                         new ParallelCommandGroup(
-                        new FollowPathCommand(follower,Ciclo5,true,1),
-                                new CloseTopeCommand(servos),
-                                new SetIntakeVelocityCommand(intake,1500),
-                                new SetTurretPositionCommand(turret,TurretPosition1)
+                                new SetIntakeVelocityCommand(intake, 1500),
+                                new SpinUpShooterCommand(shooter, 400, 20),
+                                new FollowPathCommand(follower, Ciclo4, true, 1)
                         ),
+                        new WaitCommand(1500),
+
+                        new ParallelCommandGroup(
+                                new SpinUpShooterCommand(shooter, Velocity1, 20),
+                                new FollowPathCommand(follower, Ciclo4parte2, true, 1),
+                                new SetIntakeVelocityCommand(intake, 0)
+                        ),
+
                 new WaitCommand(200),
                 new ParallelCommandGroup(
-                        new FollowPathCommand(follower,CIclo5part2,true,1),
-                        new SetIntakeVelocityCommand(intake,0)
+                        new SetIntakeVelocityCommand(intake, 1700),
+                        new OpenTopeCommand(Tope)
+                ),
+                new WaitCommand(1300),
+
+                // === Ciclo final ===
+                new ParallelCommandGroup(
+                        new FollowPathCommand(follower, Ciclo5, true, 1),
+                        new CloseTopeCommand(Tope),
+                        new SetIntakeVelocityCommand(intake, 1500),
+                        new SetTurretPositionCommand(turret, TurretPosition1)
+                ),
+                new WaitCommand(200),
+                new ParallelCommandGroup(
+                        new FollowPathCommand(follower, CIclo5part2, true, 1),
+                        new SetIntakeVelocityCommand(intake, 0)
                 ),
                 new WaitCommand(200),
 
                 new ParallelCommandGroup(
-                        new OpenTopeCommand(servos),
-                        new SetIntakeVelocityCommand(intake,1750)
+                        new OpenTopeCommand(Tope),
+                        new SetIntakeVelocityCommand(intake, 1700)
                 ),
-                new WaitCommand(1000),
+                new WaitCommand(1350),
                 new ParallelCommandGroup(
-                       new SetIntakeVelocityCommand(intake, 0),
-                        new SpinUpShooterCommand(shooter,0,20),
-                        new SetTurretPositionCommand(turret,0),
-                        new CloseTopeCommand(servos)
-
+                        new SetIntakeVelocityCommand(intake, 0),
+                        new SpinUpShooterCommand(shooter, 0, 20),
+                        new SetTurretPositionCommand(turret, 0),
+                        new CloseTopeCommand(Tope)
                 )
-
         );
     }
 

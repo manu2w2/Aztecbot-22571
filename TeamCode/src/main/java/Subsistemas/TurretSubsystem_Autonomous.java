@@ -6,35 +6,44 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 
 public class TurretSubsystem_Autonomous extends SubsystemBase {
-    private final DcMotorEx turret;
-    private static final double POWER = 0.5;
-    private static final int TOLERANCE = 10; // ticks
 
-    private double targetPosition = 0.0;   // ← Ahora guardamos como double
+    private final DcMotorEx turret;
+    private static final double POWER = 0.8;     // Aumentado un poco (mejor respuesta)
+    private static final int TOLERANCE = 15;     // Tolerancia en ticks
+
+    private double targetPosition = 0.0;
 
     public TurretSubsystem_Autonomous(HardwareMap hardwareMap) {
         turret = hardwareMap.get(DcMotorEx.class, "TurretMotor");
-        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
         turret.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // ✅ Corrección importante:
+        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);  // Modo seguro inicial
     }
 
     /**
-     * Nueva versión que acepta double (recomendada)
+     * Establece la posición objetivo de la torreta
      */
     public void setTargetPosition(double position) {
         this.targetPosition = position;
-        turret.setTargetPosition((int) Math.round(position));  // Redondea al tick más cercano
+
+        turret.setTargetPosition((int) Math.round(position));
+        turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);   // Solo ahora cambiamos el modo
         turret.setPower(POWER);
     }
 
     /**
-     * Mantengo el método original por compatibilidad
+     * Sobrecarga para compatibilidad con enteros
      */
     public void setTargetPosition(int position) {
-        setTargetPosition((double) position);   // Reutiliza el nuevo método
+        setTargetPosition((double) position);
     }
 
+    /**
+     * Verifica si llegó a la posición objetivo
+     */
     public boolean isAtTarget() {
         return !turret.isBusy() ||
                 Math.abs(turret.getCurrentPosition() - targetPosition) < TOLERANCE;
@@ -44,11 +53,12 @@ public class TurretSubsystem_Autonomous extends SubsystemBase {
         return turret.getCurrentPosition();
     }
 
-    public void stop() {
-        turret.setPower(0);
-        turret.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
     public double getTargetPosition() {
         return targetPosition;
+    }
+
+    public void stop() {
+        turret.setPower(0);
+        turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 }

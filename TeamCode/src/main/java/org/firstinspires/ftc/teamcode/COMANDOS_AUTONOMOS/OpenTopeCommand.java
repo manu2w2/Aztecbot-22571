@@ -1,20 +1,20 @@
 package org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS;
 
-import Subsistemas.ServosSubsystem_Autonomous;
+import Subsistemas.TopeSubsystem;
 import com.seattlesolvers.solverslib.command.CommandBase;
 
 public class OpenTopeCommand extends CommandBase {
 
-    private final ServosSubsystem_Autonomous servos;
+    private final TopeSubsystem tope;
 
-    public OpenTopeCommand(ServosSubsystem_Autonomous servos) {
-        this.servos = servos;
-        addRequirements(servos);
+    public OpenTopeCommand(TopeSubsystem tope) {
+        this.tope = tope;
+        addRequirements(tope);
     }
 
     @Override
     public void initialize() {
-        servos.TopeAbierto();
+        tope.open();
     }
 
     @Override

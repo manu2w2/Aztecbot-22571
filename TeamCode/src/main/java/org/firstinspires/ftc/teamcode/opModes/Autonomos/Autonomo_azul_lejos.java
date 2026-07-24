@@ -1,8 +1,6 @@
-package org.firstinspires.ftc.teamcode.Autonomos;
+package org.firstinspires.ftc.teamcode.opModes.Autonomos;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.bylazar.configurables.annotations.Configurable;
-import com.bylazar.telemetry.PanelsTelemetry;
-import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -13,17 +11,33 @@ import com.seattlesolvers.solverslib.command.ParallelCommandGroup;
 import com.seattlesolvers.solverslib.command.SequentialCommandGroup;
 import com.seattlesolvers.solverslib.command.WaitCommand;
 import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
+
+import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.CloseTopeCommand;
+import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.OpenTopeCommand;
+import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetHoodPositionCommand;
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetIntakeVelocityCommand;
+import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetTurretPositionCommand;
+import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SpinUpShooterCommand;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+import Subsistemas.HoodSubsystem;
 import Subsistemas.IntakeSubsystem_Autonomous;
+import Subsistemas.ShooterSubsystem;
+import Subsistemas.TopeSubsystem;
 import Subsistemas.TurretSubsystem_Autonomous;
 
 @Autonomous(name = "Autonomo azul lejos", group = "Autonomous")
 @Configurable
 public class Autonomo_azul_lejos extends CommandOpMode {
     private Follower follower;
+    public static double Velocity= 1440;
+    public static double TurretPosition1 = 269;
+    public static double TurretPosition2 = 87;
     private IntakeSubsystem_Autonomous intake;
     private TurretSubsystem_Autonomous turret;
+    private ShooterSubsystem shooter;
+    private HoodSubsystem hood;
+    private TopeSubsystem Tope;
 
     private final Pose startPose = new Pose(53.803, 9.405, Math.toRadians(0));
 
@@ -37,6 +51,9 @@ public class Autonomo_azul_lejos extends CommandOpMode {
         follower.setStartingPose(startPose);
         intake = new IntakeSubsystem_Autonomous(hardwareMap);
         turret = new TurretSubsystem_Autonomous(hardwareMap);
+        shooter = new ShooterSubsystem(hardwareMap, telemetry);
+        hood = new HoodSubsystem(hardwareMap);
+        Tope = new TopeSubsystem(hardwareMap);
 
         buildPaths();
 
@@ -124,23 +141,29 @@ public class Autonomo_azul_lejos extends CommandOpMode {
 
     private SequentialCommandGroup createAutonomousSequence() {
         return new SequentialCommandGroup(
-                // Ciclo 1 (Score Preload)
+
+                new ParallelCommandGroup(
                 new FollowPathCommand(follower, ciclo1, true, 1),
-                new WaitCommand(500),
-                // Ciclo 2
-                new ParallelCommandGroup(
-                        new FollowPathCommand(follower, ciclo2, true, 0.85),
-                        new SetIntakeVelocityCommand(intake,1200)
+                new SpinUpShooterCommand(shooter, Velocity, 20),
+                new SetTurretPositionCommand(turret, TurretPosition1),
+                new CloseTopeCommand(Tope),
+                        new SetHoodPositionCommand(hood, 0.5)
                 ),
-                new WaitCommand(500),
+                new WaitCommand(200),
+
                 new ParallelCommandGroup(
-                        new FollowPathCommand(follower, ciclo2part2, true, 1),
-                        new SetIntakeVelocityCommand(intake, 0)
+                        new SetIntakeVelocityCommand(intake,1150),
+                        new OpenTopeCommand(Tope)
                 ),
-                new WaitCommand(500),
-                new FollowPathCommand(follower, Ciclo3, true, 0.75),
-                new WaitCommand(500),
-                new FollowPathCommand(follower, Ciclo3parte2, true, 1)
+                new WaitCommand(1500),
+
+                new ParallelCommandGroup(
+                        new SetTurretPositionCommand(turret, TurretPosition2),
+                        new CloseTopeCommand(Tope),
+                        new SetIntakeVelocityCommand(intake,1400),
+                        new FollowPathCommand(follower, ciclo2, true, 1),
+                        new SpinUpShooterCommand(shooter, 400, 20)                )
+
 
         );
     }
