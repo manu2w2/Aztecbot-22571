@@ -249,7 +249,7 @@ public class TeleOp_azulF extends OpMode {
 
     private void transferControl(Gamepad g2) {
 
-        intakeVel = (launcher.getDistance() >= 230) ? 1100 : 1400;
+        intakeVel = (launcher.getDistance() >= 230) ? 1050 : 1500;
 
         if (g2.yWasPressed()) {
             transferRunning = !transferRunning;
@@ -277,7 +277,15 @@ public class TeleOp_azulF extends OpMode {
 
 
     private void turretControls(Gamepad gamepad2) {
-        double offset = 2.5;
+        double offset = 2.0;
+
+        if (gamepad1.yWasPressed()) {
+            angle = angle + offset * 3.5;
+        }
+
+        if (gamepad1.aWasPressed()) {
+            angle = angle - offset * 3.5;
+        }
 
         if (gamepad1.xWasPressed()){
             angle = angle + offset;

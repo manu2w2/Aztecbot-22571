@@ -194,13 +194,13 @@ public class TeleOp_RojoC extends OpMode {
                 frontLeftPower / maximum
         );
         frontRight.setPower(
-                -frontRightPower / maximum
+                frontRightPower / maximum
         );
         backLeft.setPower(
                 backLeftPower / maximum
         );
         backRight.setPower(
-                -backRightPower / maximum
+                backRightPower / maximum
         );
     }
     private void servoControl(Gamepad g2) {
@@ -245,7 +245,7 @@ public class TeleOp_RojoC extends OpMode {
 
     private void transferControl(Gamepad g2) {
 
-        intakeVel = (launcher.getDistance() >= 220) ? 1100 : 1400;
+        intakeVel = (launcher.getDistance() >= 220) ? 1050 : 1500;
 
         if (g2.yWasPressed()) {
             transferRunning = !transferRunning;
@@ -272,7 +272,15 @@ public class TeleOp_RojoC extends OpMode {
 
         private void turretControls(Gamepad gamepad2) {
 
-            double offset = 2.5;
+            double offset = 2;
+
+            if (gamepad1.yWasPressed()) {
+                angle = angle + offset * 3.5;
+            }
+
+            if (gamepad1.aWasPressed()) {
+                angle = angle - offset * 3.5;
+            }
 
             if (gamepad1.xWasPressed()){
                 angle = angle + offset;
