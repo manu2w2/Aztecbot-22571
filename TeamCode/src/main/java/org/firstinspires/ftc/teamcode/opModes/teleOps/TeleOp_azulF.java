@@ -195,13 +195,13 @@ public class TeleOp_azulF extends OpMode {
                 frontLeftPower / maximum
         );
         frontRight.setPower(
-                -frontRightPower / maximum
+                frontRightPower / maximum
         );
         backLeft.setPower(
                 backLeftPower / maximum
         );
         backRight.setPower(
-                -backRightPower / maximum
+                backRightPower / maximum
         );
     }
     private void servoControl(Gamepad g2) {

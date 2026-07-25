@@ -81,23 +81,23 @@ public class Autonomo_azul_cerca extends CommandOpMode {
                 .build();
 
         Ciclo3 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(12.704, 57.332)))
-                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(141))
+                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(15.704, 57.332)))
+                .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(150.5))
                 .build();
 
         Ciclo3parte2 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(12.704, 57.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
-                .setConstantHeadingInterpolation(Math.toRadians(141))
+                .addPath(new BezierCurve(new Pose(15.704, 57.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
+                .setConstantHeadingInterpolation(Math.toRadians(150.5))
                 .build();
 
         Ciclo4 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(12.704, 57.332)))
-                .setConstantHeadingInterpolation(Math.toRadians(141))
+                .addPath(new BezierCurve(new Pose(56.425, 82.888), new Pose(37.253, 55.456), new Pose(15.704, 57.332)))
+                .setConstantHeadingInterpolation(Math.toRadians(150.5))
                 .build();
 
         Ciclo4parte2 = follower.pathBuilder()
-                .addPath(new BezierCurve(new Pose(12.704, 57.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
-                .setLinearHeadingInterpolation(Math.toRadians(141), Math.toRadians(180))
+                .addPath(new BezierCurve(new Pose(15.704, 57.332), new Pose(44.406, 62.236), new Pose(56.425, 82.888)))
+                .setLinearHeadingInterpolation(Math.toRadians(150.5), Math.toRadians(180))
                 .build();
 
         Ciclo5 = follower.pathBuilder()
@@ -121,9 +121,9 @@ public class Autonomo_azul_cerca extends CommandOpMode {
                         new SetTurretPositionCommand(turret, TurretPosition1),
                         new FollowPathCommand(follower, ciclo1, true, 1),
                         new CloseTopeCommand(Tope),
-        new SetHoodPositionCommand(hood, 0.24)
+                        new SetHoodPositionCommand(hood, 0.24)
                 ),
-                        new WaitCommand(200),
+                new WaitCommand(200),
                 new ParallelCommandGroup(
                         new SetIntakeVelocityCommand(intake, 1700),
                         new OpenTopeCommand(Tope)
@@ -157,29 +157,31 @@ public class Autonomo_azul_cerca extends CommandOpMode {
                         new FollowPathCommand(follower, Ciclo3, true, 1),
                         new SetIntakeVelocityCommand(intake, 1400)
                 ),
-                new WaitCommand(1500),
+                new WaitCommand(1200),
 
                 // Secuencia de retorno e intake (usamos Sequential para evitar conflictos)
                 new ParallelCommandGroup(
                         new FollowPathCommand(follower, Ciclo3parte2, true, 1),
-                                new SpinUpShooterCommand(shooter, Velocity1, 20),
-                                new SetIntakeVelocityCommand(intake, 1700)
-                        ),
-                        new WaitCommand(1300),
-                        new OpenTopeCommand(Tope),
+                        new SpinUpShooterCommand(shooter, Velocity1, 20),
+                        new SetIntakeVelocityCommand(intake, 1700)
+                ),
+                new WaitCommand(200),
+                new OpenTopeCommand(Tope),
+                new WaitCommand(1300),
 
-                        new ParallelCommandGroup(
-                                new SetIntakeVelocityCommand(intake, 1500),
-                                new SpinUpShooterCommand(shooter, 400, 20),
-                                new FollowPathCommand(follower, Ciclo4, true, 1)
-                        ),
-                        new WaitCommand(1500),
+                new ParallelCommandGroup(
+                        new SetIntakeVelocityCommand(intake, 1500),
+                        new SpinUpShooterCommand(shooter, 400, 20),
+                        new FollowPathCommand(follower, Ciclo4, true, 1),
+                        new CloseTopeCommand(Tope)
+                ),
+                new WaitCommand(1500),
 
-                        new ParallelCommandGroup(
-                                new SpinUpShooterCommand(shooter, Velocity1, 20),
-                                new FollowPathCommand(follower, Ciclo4parte2, true, 1),
-                                new SetIntakeVelocityCommand(intake, 0)
-                        ),
+                new ParallelCommandGroup(
+                        new SpinUpShooterCommand(shooter, Velocity1, 20),
+                        new FollowPathCommand(follower, Ciclo4parte2, true, 1),
+                        new SetIntakeVelocityCommand(intake, 0)
+                ),
 
                 new WaitCommand(200),
                 new ParallelCommandGroup(

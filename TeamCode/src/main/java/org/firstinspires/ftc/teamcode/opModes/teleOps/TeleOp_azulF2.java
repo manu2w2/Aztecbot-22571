@@ -17,12 +17,13 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.List;
 
+import Subsistemas.LauncherSub;
 import Subsistemas.LauncherSubA;
 import Subsistemas.TurretSub;
 
 @Configurable
-@TeleOp(name = "TELEOP_azul_C")
-public class TeleOp_azulC extends OpMode {
+@TeleOp(name = "TELEOP_rojo_F2")
+public class TeleOp_azulF2 extends OpMode {
 
     private Follower follower;
     private double angle = 0;
@@ -42,19 +43,19 @@ public class TeleOp_azulC extends OpMode {
 
     private boolean reversetransfer = false;
 
-    private boolean transferRunning;
-
     private boolean shooting;
+
+    private boolean transferRunning;
     // ================= ESTADOS =================
     public static double servoMin = 0.1;
     public static double servoMax = 0.41;
     public static double intakeVel = 1500;
 
     public double hoodAngle = 0;
-    public static double initX = 56.425;
-    public static double initY = 82.888;
+    public static double initX = 35;
+    public static double initY = 10.497;
 
-    public static Pose startingPose = new Pose(initX,initY,Math.toRadians(180));
+    public static Pose startingPose = new Pose(initX,initY,Math.toRadians(90));
 
     @Override
     public void init() {
@@ -119,9 +120,9 @@ public class TeleOp_azulC extends OpMode {
 
         backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
@@ -242,22 +243,12 @@ public class TeleOp_azulC extends OpMode {
             launcher.toggleShooter();
         }
 
-        double v = 0.05;
-        if(gamepad2.bWasPressed()) {
-            hoodAngle = hoodAngle + v;
-            launcher.setHOOD_ANGLE(hoodAngle);
-        }
-        if(gamepad2.xWasPressed()) {
-            hoodAngle = hoodAngle - v;
-            launcher.setHOOD_ANGLE(hoodAngle);
-        }
-
 
     }
 
     private void transferControl(Gamepad g2) {
 
-        intakeVel = (launcher.getDistance() >= 230) ? 1100 : 1400;
+        intakeVel = (launcher.getDistance() >= 220) ? 1100 : 1400;
 
         if (g2.yWasPressed()) {
             transferRunning = !transferRunning;
@@ -283,8 +274,7 @@ public class TeleOp_azulC extends OpMode {
 
 
     private void turretControls(Gamepad gamepad2) {
-
-        double offset = 2.5;
+        double offset = 2;
 
         if (gamepad1.xWasPressed()){
             angle = angle + offset;
