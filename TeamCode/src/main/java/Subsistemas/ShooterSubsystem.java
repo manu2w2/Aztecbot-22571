@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class ShooterSubsystem extends SubsystemBase {
 
     public static PIDFCoefficients SHOOTER_COEFFS = new PIDFCoefficients(0.0085, 0, 0, 0);
-    public static double kV = 0.000455;
+    public static double kV = 0.0004545;
 
     private final DcMotorEx flywheel1;
     private final DcMotorEx flywheel2;

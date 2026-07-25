@@ -245,7 +245,7 @@ public class TeleOp_RojoC extends OpMode {
 
     private void transferControl(Gamepad g2) {
 
-        intakeVel = (launcher.getDistance() >= 220) ? 1050 : 1500;
+        intakeVel = (launcher.getDistance() >= 220) ? 1100 : 1400;
 
         if (g2.yWasPressed()) {
             transferRunning = !transferRunning;
@@ -270,25 +270,17 @@ public class TeleOp_RojoC extends OpMode {
 
 
 
-        private void turretControls(Gamepad gamepad2) {
+    private void turretControls(Gamepad gamepad2) {
 
-            double offset = 2;
+        double offset = 2.5;
 
-            if (gamepad1.yWasPressed()) {
-                angle = angle + offset * 3.5;
-            }
-
-            if (gamepad1.aWasPressed()) {
-                angle = angle - offset * 3.5;
-            }
-
-            if (gamepad1.xWasPressed()){
-                angle = angle + offset;
-            }
-            if (gamepad1.bWasPressed()){
-                angle = angle -offset;
-            }
-            turret.setManualAimOffsetDegrees(angle);
+        if (gamepad1.xWasPressed()){
+            angle = angle + offset;
+        }
+        if (gamepad1.bWasPressed()){
+            angle = angle -offset;
+        }
+        turret.setManualAimOffsetDegrees(angle);
     }
 
     private void addShooterTelemetry() {
