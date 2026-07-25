@@ -17,12 +17,11 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.List;
 
-import Subsistemas.LauncherSub;
 import Subsistemas.LauncherSubA;
 import Subsistemas.TurretSub;
 
 @Configurable
-@TeleOp(name = "TELEOP_rojo_F2")
+@TeleOp(name = "TELEOP_azul_F2")
 public class TeleOp_azulF2 extends OpMode {
 
     private Follower follower;

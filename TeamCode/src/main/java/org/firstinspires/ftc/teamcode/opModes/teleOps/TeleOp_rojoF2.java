@@ -18,7 +18,6 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import java.util.List;
 
 import Subsistemas.LauncherSub;
-import Subsistemas.LauncherSubA;
 import Subsistemas.TurretSub;
 
 @Configurable
@@ -120,9 +119,9 @@ public class TeleOp_rojoF2 extends OpMode {
 
         backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
 
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
