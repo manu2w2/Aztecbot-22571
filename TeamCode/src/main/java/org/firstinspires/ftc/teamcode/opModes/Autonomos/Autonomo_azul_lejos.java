@@ -11,7 +11,6 @@ import com.seattlesolvers.solverslib.command.ParallelCommandGroup;
 import com.seattlesolvers.solverslib.command.SequentialCommandGroup;
 import com.seattlesolvers.solverslib.command.WaitCommand;
 import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
-
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.CloseTopeCommand;
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.OpenTopeCommand;
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetHoodPositionCommand;
@@ -19,7 +18,6 @@ import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetIntakeVelocityComman
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SetTurretPositionCommand;
 import org.firstinspires.ftc.teamcode.COMANDOS_AUTONOMOS.SpinUpShooterCommand;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-
 import Subsistemas.HoodSubsystem;
 import Subsistemas.IntakeSubsystem_Autonomous;
 import Subsistemas.ShooterSubsystem;
@@ -29,49 +27,54 @@ import Subsistemas.TurretSubsystem_Autonomous;
 @Autonomous(name = "Autonomo azul lejos", group = "Autonomous")
 @Configurable
 public class Autonomo_azul_lejos extends CommandOpMode {
+
     private Follower follower;
+    private IntakeSubsystem_Autonomous intake;
+    private TurretSubsystem_Autonomous turret;
+    private ShooterSubsystem shooter;
+    private HoodSubsystem hood;
+    private TopeSubsystem Tope;
+    private final Pose startPose = new Pose(53.803, 9.112, Math.toRadians(0));
+    private PathChain Ciclo1, Ciclo2, Ciclo2part2, Salir;
 
-
-    private final Pose startPose = new Pose(53.803, 9.112210200927344, Math.toRadians(0));
-
-    // PathChains (sin cambiar nombres ni trayectorias)
-    private PathChain ciclo1, ciclo2, ciclo2part2, Ciclo3, Ciclo3parte2;
 
     @Override
     public void initialize() {
-
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
+        intake = new IntakeSubsystem_Autonomous(hardwareMap);
+        turret = new TurretSubsystem_Autonomous(hardwareMap);
+        shooter = new ShooterSubsystem(hardwareMap, telemetry);
+        hood = new HoodSubsystem(hardwareMap);
+        Tope = new TopeSubsystem(hardwareMap);
+
+        register(intake, turret, shooter, hood, Tope);
+
         buildPaths();
-
-        waitForStart();
-
-        if (opModeIsActive()) {
-            schedule(createAutonomousSequence());
-        }
+        schedule(createAutonomousSequence());
     }
 
+
     public void buildPaths() {
-        // Mantengo exactamente tus paths originales
-        ciclo1 = follower.pathBuilder()
+        Ciclo1 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Pose(53.803, 9.405),
-                                new Pose(56.000, 18.723)
+                                new Pose(53.803, 9.112),
+                                new Pose(53.803, 18.400)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(90))
+                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(180))
                 .build();
 
-        ciclo2 = follower.pathBuilder()
+        Ciclo2 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
-                                new Pose(56.000, 18.723),
+                                new Pose(53.803, 18.400),
                                 new Pose(45.235, 34.959)
                         )
                 )
-                .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
+                .setConstantHeadingInterpolation(Math.toRadians(180))
                 .addPath(
                         new BezierLine(
                                 new Pose(45.235, 34.959),
@@ -81,7 +84,7 @@ public class Autonomo_azul_lejos extends CommandOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
 
-        ciclo2part2 = follower.pathBuilder()
+        Ciclo2part2 = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
                                 new Pose(13.676, 35.284),
@@ -91,48 +94,61 @@ public class Autonomo_azul_lejos extends CommandOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
 
-        Ciclo3 = follower.pathBuilder()
+        Salir = follower.pathBuilder()
                 .addPath(
                         new BezierLine(
                                 new Pose(56.000, 18.723),
-                                new Pose(15.5, 8.894)
-                        )
-                )
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(
-                        new BezierLine(
-                                new Pose(15.5, 8.894),
-                                new Pose(17.200, 8.894)
-                        )
-                )
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .addPath(
-                        new BezierLine(
-                                new Pose(17.200, 8.894),
-                                new Pose(15.5, 8.894)
+                                new Pose(32.856, 13.518)
                         )
                 )
                 .setConstantHeadingInterpolation(Math.toRadians(180))
                 .build();
-
-        Ciclo3parte2 = follower.pathBuilder()
-                .addPath(
-                        new BezierLine(
-                                new Pose(15.5, 8.894),
-                                new Pose(56.000, 18.723)
-                        )
-                )
-                .setConstantHeadingInterpolation(Math.toRadians(180))
-                .build();
-
     }
+
 
     private SequentialCommandGroup createAutonomousSequence() {
         return new SequentialCommandGroup(
-                new FollowPathCommand(follower, ciclo1, true, 1)
+                new ParallelCommandGroup(
+                        new SpinUpShooterCommand(shooter, 1470, 20),
+                        new SetTurretPositionCommand(turret, 251),
+                        new FollowPathCommand(follower, Ciclo1, true, 1),
+                        new SetHoodPositionCommand(hood, 0.7),
+                        new CloseTopeCommand(Tope)
+                ),
+                new WaitCommand(200),
+                new ParallelCommandGroup(
+                        new SetIntakeVelocityCommand(intake, 950),
+                        new OpenTopeCommand(Tope)
+                ),
+                new WaitCommand(2700),
+                new ParallelCommandGroup(
+                        new FollowPathCommand(follower, Ciclo2, true, 1),
+                        new SpinUpShooterCommand(shooter, 1490, 20),
+                        new SetTurretPositionCommand(turret, 279),
+                        new CloseTopeCommand(Tope),
+                        new SetIntakeVelocityCommand(intake, 1600)
+                ),
+                new WaitCommand(200),
+                new ParallelCommandGroup(
+                        new FollowPathCommand(follower, Ciclo2part2, true, 1),
+                        new SetIntakeVelocityCommand(intake, 0)
+                ),
+                new WaitCommand(200),
+                new ParallelCommandGroup(
+                        new OpenTopeCommand(Tope),
+                        new SetIntakeVelocityCommand(intake, 950)
+                ),
+                new WaitCommand(2700),
+                new ParallelCommandGroup(
+                        new SetIntakeVelocityCommand(intake, 0),
+                        new CloseTopeCommand(Tope),
+                        new FollowPathCommand(follower, Salir, true, 1),
+                        new SetTurretPositionCommand(turret, 0),
+                        new SpinUpShooterCommand(shooter, 0, 20)
+                )
         );
-
     }
+
 
     @Override
     public void run() {

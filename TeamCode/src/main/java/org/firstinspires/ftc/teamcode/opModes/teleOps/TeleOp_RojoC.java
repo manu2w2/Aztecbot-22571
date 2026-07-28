@@ -50,10 +50,10 @@ public class TeleOp_RojoC extends OpMode {
     public static double intakeVel = 1500;
 
     public double hoodAngle = 0;
-    public static double initX = 117.301;
-    public static double initY = 126.059;
+    public static double initX = 99.523;
+    public static double initY = 76.308;
 
-    public static Pose startingPose = new Pose(initX,initY,Math.toRadians(126.5));
+    public static Pose startingPose = new Pose(initX,initY,Math.toRadians(0));
 
     @Override
     public void init() {

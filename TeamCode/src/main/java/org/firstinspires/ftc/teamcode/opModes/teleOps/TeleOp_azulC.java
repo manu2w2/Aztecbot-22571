@@ -51,8 +51,8 @@ public class TeleOp_azulC extends OpMode {
     public static double intakeVel = 1500;
 
     public double hoodAngle = 0;
-    public static double initX = 56.425;
-    public static double initY = 82.888;
+    public static double initX = 44.478;
+    public static double initY = 76.308;
 
     public static Pose startingPose = new Pose(initX,initY,Math.toRadians(180));
 
