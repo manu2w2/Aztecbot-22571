@@ -53,6 +53,8 @@ public class Autonomo_rojo_lejos extends CommandOpMode {
         hood = new HoodSubsystem(hardwareMap);
         Tope = new TopeSubsystem(hardwareMap);
 
+        register(intake, turret, shooter, hood, Tope);
+
         buildPaths();
 
         waitForStart();

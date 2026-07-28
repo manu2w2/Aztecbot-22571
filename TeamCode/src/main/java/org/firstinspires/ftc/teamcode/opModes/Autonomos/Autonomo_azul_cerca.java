@@ -51,6 +51,7 @@ public class Autonomo_azul_cerca extends CommandOpMode {
         shooter = new ShooterSubsystem(hardwareMap, telemetry);
         hood = new HoodSubsystem(hardwareMap);
         Tope = new TopeSubsystem(hardwareMap);
+        register(intake, turret, shooter, hood, Tope);
 
         buildPaths();
         waitForStart();
