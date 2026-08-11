@@ -13,7 +13,6 @@ import com.seattlesolvers.solverslib.hardware.motors.Motor;
 import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
 import com.seattlesolvers.solverslib.hardware.motors.MotorGroup;
 import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
-import com.seattlesolvers.solverslib.util.InterpLUT;
 
 @Configurable
 public class LauncherSub extends SubsystemBase {
@@ -22,34 +21,22 @@ public class LauncherSub extends SubsystemBase {
     private static final double LIMELIGHT_LENS_HEIGHT_CM = 28.0;
     private static final double APRILTAG_HEIGHT_CM = 75.6;
 
-    // PID + Feedforward
     private static final double KP = 0.0085;
     private static final double KV = 0.000455;
 
     private final PController flywheelController = new PController(KP);
 
-    // Hardware
     private final MotorGroup flywheelMotors;
-    private final MotorEx motor1;
-    private final MotorEx motor2;
+    private final MotorEx motor1, motor2;
     private final ServoEx servoHood;
-
     private final Limelight3A limelight;
 
     private static final PwmControl.PwmRange HOOD_RANGE = new PwmControl.PwmRange(500, 2500);
-    private static final double HOOD_MIN_ANGLE = 0;
 
-
-    // Estados
     private boolean shooterRunning = false;
     private double motorPower = 0.0;
     private double motorTicksPerSec = 0.0;
     private double goalDistanceCm = 0.0;
-
-
-    private final InterpLUT angleLut = new InterpLUT();
-    private final InterpLUT velocityLut = new InterpLUT();
-
     private double TARGET_TICKS_PER_SEC;
     public int TARGET_TAG = 24;
 
@@ -60,41 +47,27 @@ public class LauncherSub extends SubsystemBase {
         flywheelMotors = new MotorGroup(motor1.setInverted(true), motor2);
         flywheelMotors.setRunMode(Motor.RunMode.RawPower);
         flywheelMotors.setZeroPowerBehavior(Motor.ZeroPowerBehavior.FLOAT);
-
-        servoHood = new ServoEx(hm, servoHoodName).setPwm(HOOD_RANGE);
+        servoHood = new ServoEx(hm, servoHoodName)
+                .setPwm(HOOD_RANGE)
+                .setCachingTolerance(0.001);
         servoHood.setInverted(true);
-
-
 
         limelight = hm.get(Limelight3A.class, "limelight");
         limelight.pipelineSwitch(0);
         limelight.start();
-
-        // 📌 Inicialización de la Tabla LUT para el ángulo del Hood (cm -> grados)
-
-
     }
 
     @Override
     public void periodic() {
-        // 1. Actualizar datos de visión
         updateGoalDistanceFromVision();
 
-        // 2. Actualizar el ángulo del Hood según la distancia calculada
-
-
         servoHood.set(hoodAngle(goalDistanceCm) + 0.12);
-
         TARGET_TICKS_PER_SEC = flywheelSpeed(goalDistanceCm);
 
-
-
-        // 3. Control del Shooter
         motorTicksPerSec = motor2.getCorrectedVelocity();
 
         if (!shooterRunning) {
             flywheelMotors.set(0.31);
-
             return;
         }
 
@@ -102,17 +75,12 @@ public class LauncherSub extends SubsystemBase {
         double pidOutput = flywheelController.calculate(motorTicksPerSec);
         double feedForward = KV * TARGET_TICKS_PER_SEC;
 
-        motorPower = Math.max(-1.0, Math.min(1.0, pidOutput + feedForward));
+        motorPower = MathFunctions.clamp(pidOutput + feedForward, -1.0, 1.0);
         flywheelMotors.set(motorPower);
-        double velocityError = motorTicksPerSec - TARGET_TICKS_PER_SEC;
-        velocityError = Math.abs(velocityError);
-
     }
-
 
     public void updateGoalDistanceFromVision() {
         LLResult result = limelight.getLatestResult();
-
         if (result == null || !result.isValid() || result.getFiducialResults().isEmpty()) {
             return;
         }
@@ -123,79 +91,28 @@ public class LauncherSub extends SubsystemBase {
                 double angleToGoal = LIMELIGHT_MOUNT_ANGLE_DEGREES + ty;
                 double heightDiff = APRILTAG_HEIGHT_CM - LIMELIGHT_LENS_HEIGHT_CM;
                 goalDistanceCm = Math.abs(heightDiff / Math.tan(Math.toRadians(angleToGoal)));
-
                 break;
             }
         }
     }
 
-    private static double flywheelOffset = 0;
-    private static double hoodOffset = 0;
-
     public static double hoodAngle(double goalDist) {
-        double angle =
-                ((-1.26702e-7 * goalDist + 0.000053276) * goalDist - 0.00527341)
-                        * goalDist + 0.448478 + hoodOffset;
-
+        double angle = ((-1.26702e-7 * goalDist + 0.000053276) * goalDist - 0.00527341) * goalDist + 0.448478;
         return MathFunctions.clamp(angle, 0.1, 0.95);
     }
 
     public static double flywheelSpeed(double goalDist) {
-        double rpm = ((-0.000111811 * goalDist + 0.0614737) * goalDist - 7.61823) * goalDist + 1278.1689 + flywheelOffset;
-
-        return MathFunctions.clamp(rpm, 300, 1500);
+        double rpm = ((-0.000111811 * goalDist + 0.0614737) * goalDist - 7.61823) * goalDist + 1278.1689;
+        return MathFunctions.clamp(rpm, 300, 1600);
     }
 
+    public void setTargetTag(int tag) { TARGET_TAG = tag; }
+    public void startShooter() { shooterRunning = true; flywheelController.reset(); }
+    public void stopShooter() { shooterRunning = false; flywheelMotors.set(0.0); }
+    public void toggleShooter() { if (shooterRunning) stopShooter(); else startShooter(); }
 
-    private boolean hasValidTarget(LLResult result) {
-        if (result == null || !result.isValid() || result.getFiducialResults().isEmpty()) {
-            return false;
-        }
-
-        for (LLResultTypes.FiducialResult fiducial : result.getFiducialResults()) {
-            if (fiducial.getFiducialId() == TARGET_TAG) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void setGoalDistance(double distance) {
-        this.goalDistanceCm = distance;
-    }
-    public void setTargetTag(int tag) {
-        TARGET_TAG = tag;
-    }
-
-    public void startShooter() {
-        shooterRunning = true;
-        flywheelController.reset();
-    }
-
-    public void stopShooter() {
-        shooterRunning = false;
-        flywheelMotors.set(0.0);
-    }
-
-    public void toggleShooter() {
-        if (shooterRunning) stopShooter();
-        else startShooter();
-    }
-
-    // Getters
-    public double getTicksPerSec() {
-        return motorTicksPerSec;
-    }
-
-    public double getTicksPerSecError() {
-        return TARGET_TICKS_PER_SEC - motorTicksPerSec;
-    }
-
-    public double getDistance() {
-        return goalDistanceCm;
-    }
-
-    public boolean isShooterRunning() {
-        return shooterRunning;
-    }
+    public double getTicksPerSec() { return motorTicksPerSec; }
+    public double getTicksPerSecError() { return TARGET_TICKS_PER_SEC - motorTicksPerSec; }
+    public double getDistance() { return goalDistanceCm; }
+    public boolean isShooterRunning() { return shooterRunning; }
 }

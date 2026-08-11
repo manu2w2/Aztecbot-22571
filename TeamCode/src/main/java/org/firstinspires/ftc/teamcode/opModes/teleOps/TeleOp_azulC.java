@@ -4,83 +4,98 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.lynx.LynxModule;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Gamepad;
-import com.seattlesolvers.solverslib.command.CommandScheduler;
+import com.seattlesolvers.solverslib.command.CommandOpMode;
+import com.seattlesolvers.solverslib.command.InstantCommand;
+import com.seattlesolvers.solverslib.command.button.Trigger;
 import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.List;
 
-import Subsistemas.LauncherSubA;
+import Subsistemas.LauncherSub;
 import Subsistemas.TurretSub;
 
 @Configurable
-@TeleOp(name = "TELEOP_azul_C")
-public class TeleOp_azulC extends OpMode {
+@TeleOp(name = "TELEOP_azul_C_Optimized")
+public class TeleOp_azulC extends CommandOpMode {
 
     private Follower follower;
     private double angle = 0;
-    // Transferencia
+
     private DcMotorEx transferMotor;
-    //Drivetrain
-    private DcMotorEx frontLeft;
-    private DcMotorEx frontRight;
-    private DcMotorEx backLeft;
-    private DcMotorEx backRight;
-    // Servo
-    private ServoEx servoTope;
-    // Subsistema de la torreta
-    private ServoEx Light;
-    private LauncherSubA launcher;
+    private DcMotorEx frontLeft, frontRight, backLeft, backRight;
+    private ServoEx servoTope, Light;
+
+    private LauncherSub launcher;
     private TurretSub turret;
 
     private boolean reversetransfer = false;
+    private boolean transferRunning = false;
+    private boolean shooting = false;
 
-    private boolean transferRunning;
-
-    private boolean shooting;
-    // ================= ESTADOS =================
     public static double servoMin = 0.1;
     public static double servoMax = 0.41;
     public static double intakeVel = 1500;
-
     public double hoodAngle = 0;
     public static double initX = 44.478;
     public static double initY = 76.308;
+    public static Pose startingPose = new Pose(initX, initY, Math.toRadians(180));
 
-    public static Pose startingPose = new Pose(initX,initY,Math.toRadians(180));
+    private List<LynxModule> allHubs;
 
     @Override
-    public void init() {
-
-        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
-        hubs.forEach(hub -> hub.setBulkCachingMode(
-                LynxModule.BulkCachingMode.AUTO));
+    public void initialize() {
+        allHubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
         follower.startTeleopDrive();
 
-        CommandScheduler.getInstance().reset();
-        CommandScheduler.getInstance().enable();
-
-
         initializeTurret();
         initializeShooter();
         initializeTransfer();
         initializeDrive();
         initializeServo();
+
         turret.setGoalX(0);
         turret.setManualAimOffsetDegrees(0);
-        CommandScheduler.getInstance().registerSubsystem(turret);
-        CommandScheduler.getInstance().registerSubsystem(launcher);
+
+        register(turret, launcher);
+
+        new Trigger(() -> gamepad2.aWasPressed())
+                .whenActive(new InstantCommand(() -> launcher.toggleShooter()));
+
+        new Trigger(() -> gamepad2.bWasPressed())
+                .whenActive(new InstantCommand(() -> hoodAngle += 0.05));
+
+        new Trigger(() -> gamepad2.xWasPressed())
+                .whenActive(new InstantCommand(() -> hoodAngle -= 0.05));
+
+        new Trigger(() -> gamepad2.yWasPressed())
+                .whenActive(new InstantCommand(() -> {
+                    transferRunning = !transferRunning;
+                    reversetransfer = false;
+                }));
+
+        new Trigger(() -> gamepad2.dpadUpWasPressed())
+                .whenActive(new InstantCommand(() -> {
+                    reversetransfer = !reversetransfer;
+                    transferRunning = false;
+                }));
+
+        new Trigger(() -> gamepad1.yWasPressed()).whenActive(new InstantCommand(() -> angle += 7.0));
+        new Trigger(() -> gamepad1.aWasPressed()).whenActive(new InstantCommand(() -> angle -= 7.0));
+        new Trigger(() -> gamepad1.xWasPressed()).whenActive(new InstantCommand(() -> angle += 2.0));
+        new Trigger(() -> gamepad1.bWasPressed()).whenActive(new InstantCommand(() -> angle -= 2.0));
     }
 
     private void initializeTurret() {
@@ -88,186 +103,99 @@ public class TeleOp_azulC extends OpMode {
     }
 
     private void initializeShooter() {
-        // flywheel constructor
-        launcher = new LauncherSubA(hardwareMap, "shooter","shooter2" ,"hood" );
+        launcher = new LauncherSub(hardwareMap, "shooter", "shooter2", "hood");
         launcher.setTargetTag(20);
     }
 
     private void initializeTransfer() {
-
         transferMotor = hardwareMap.get(DcMotorEx.class, "Transfer");
-
         transferMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-
         transferMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
         transferMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-
     private void initializeDrive() {
-
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
-
         frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
-
         backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
-
         backRight = hardwareMap.get(DcMotorEx.class, "backRight");
 
         frontLeft.setDirection(DcMotorSimple.Direction.FORWARD);
-
         backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
-
         frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
 
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
+
     private void initializeServo() {
-        servoTope = new ServoEx(hardwareMap, "ServoTope").setInverted(false);
-        Light = new ServoEx(hardwareMap, "light");
+        servoTope = new ServoEx(hardwareMap, "ServoTope").setCachingTolerance(0.001);
+        Light = new ServoEx(hardwareMap, "light").setCachingTolerance(0.01);
     }
 
-
     @Override
-    public void start() {
-
-        turret.enable();
-
-
-    }
-
-
-    @Override
-    public void loop() {
+    public void run() {
         follower.update();
         turret.setPose(follower.getPose());
+        turret.setManualAimOffsetDegrees(angle);
 
+        driveControl();
+        servoControl();
+        transferControl();
 
-
-        CommandScheduler.getInstance().run();
-
-        driveControl(gamepad1);
-        servoControl(gamepad2);
-        shooterControl(gamepad2);      // Toggle con botón A
-        transferControl(gamepad2);
-        turretControls(gamepad2);
-
-        addShooterTelemetry();
-        addTurretTelemetry();
-        telemetry.update();
-
+        addTelemetry();
     }
 
-    private void driveControl(Gamepad g1) {
+    private void driveControl() {
+        double y = -gamepad1.left_stick_y;
+        double x = gamepad1.left_stick_x * 1.05;
+        double rotation = gamepad1.right_stick_x;
 
-        double y = -g1.left_stick_y;
-        double x = g1.left_stick_x * 1.05;
-        double rotation = g1.right_stick_x;
+        double fl = y + x + rotation;
+        double fr = y - x - rotation;
+        double bl = y - x + rotation;
+        double br = y + x - rotation;
 
-        double frontLeftPower = y + x + rotation;
+        double max = Math.max(1.0, Math.max(Math.abs(fl), Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
 
-        double frontRightPower = y - x - rotation;
-
-        double backLeftPower = y - x + rotation;
-
-        double backRightPower = y + x - rotation;
-
-        double maximum = Math.max(1.0, Math.max(Math.abs(frontLeftPower), Math.max(Math.abs(frontRightPower), Math.max(Math.abs(backLeftPower), Math.abs(backRightPower)))));
-
-        frontLeft.setPower(
-                frontLeftPower / maximum
-        );
-        frontRight.setPower(
-                frontRightPower / maximum
-        );
-        backLeft.setPower(
-                backLeftPower / maximum
-        );
-        backRight.setPower(
-                backRightPower / maximum
-        );
+        frontLeft.setPower(fl / max);
+        frontRight.setPower(fr / max);
+        backLeft.setPower(bl / max);
+        backRight.setPower(br / max);
     }
-    private void servoControl(Gamepad g2) {
-        double error;
-        error = Math.abs(launcher.getTicksPerSecError());
-        if (g2.right_bumper) {
-            if (error <= 30) {
-                servoTope.set(servoMax);
-                shooting = true;
-            }
+
+    private void servoControl() {
+        double error = Math.abs(launcher.getTicksPerSecError());
+        if (gamepad2.right_bumper && error <= 30) {
+            servoTope.set(servoMax);
+            shooting = true;
         } else {
             servoTope.set(servoMin);
             shooting = false;
-
         }
 
         boolean shooterRunning = launcher.isShooterRunning();
-
         if (!shooterRunning && !transferRunning) {
-            // Nada encendido -> Azul
             Light.set(0.61);
-
         } else if (!shooterRunning) {
-            // Solo intake -> Rojo
             Light.set(0.28);
-
         } else if (!transferRunning) {
-            // Solo shooter -> Verde (random)
             Light.set(0.39);
-
         } else {
-            // Shooter + intake -> Amarillo (random)
             Light.set(0.50);
-        }    }
-
-    private void shooterControl(Gamepad g2) {
-        if (g2.aWasPressed()){
-            launcher.toggleShooter();
         }
-
-        double v = 0.05;
-        if(gamepad2.bWasPressed()) {
-            hoodAngle = hoodAngle + v;
-            launcher.setHOOD_ANGLE(hoodAngle);
-        }
-        if(gamepad2.xWasPressed()) {
-            hoodAngle = hoodAngle - v;
-            launcher.setHOOD_ANGLE(hoodAngle);
-        }
-
-
     }
 
-    private void transferControl(Gamepad g2) {
-
+    private void transferControl() {
         intakeVel = (launcher.getDistance() >= 230) ? 1050 : 1500;
-
-        if (g2.yWasPressed()) {
-            transferRunning = !transferRunning;
-            reversetransfer = false;
-        }
-
-        if (g2.dpadUpWasPressed()){
-            reversetransfer = !reversetransfer;
-            transferRunning = false;
-        }
 
         if (shooting) {
             transferMotor.setVelocity(intakeVel);
@@ -276,82 +204,24 @@ public class TeleOp_azulC extends OpMode {
         } else if (reversetransfer) {
             transferMotor.setPower(-0.5);
         } else {
-            transferMotor.setPower(0);   // Detener el motor
+            transferMotor.setPower(0.0);
         }
-
     }
 
-
-    private void turretControls(Gamepad gamepad2) {
-
-        double offset = 2.0;
-
-        if (gamepad1.yWasPressed()) {
-            angle = angle + offset * 3.5;
-        }
-
-        if (gamepad1.aWasPressed()) {
-            angle = angle - offset * 3.5;
-        }
-
-        if (gamepad1.xWasPressed()){
-            angle = angle + offset;
-        }
-        if (gamepad1.bWasPressed()){
-            angle = angle -offset;
-        }
-        turret.setManualAimOffsetDegrees(angle);
-    }
-
-    private void addShooterTelemetry() {
-        telemetry.addData("Motor Velocity", launcher.getTicksPerSec());
-        telemetry.addData("Motor Velocity Error", launcher.getTicksPerSecError());
-
-    }
-
-    private void addTurretTelemetry() {
+    private void addTelemetry() {
         telemetry.addData("Goal Distance", launcher.getDistance());
         telemetry.addData("Turret Angle", turret.getCurrentAngle());
-        telemetry.addData("Target Angle", turret.getTargetAngle());
-        telemetry.addData("Hood Angle" , hoodAngle);
-
+        telemetry.addData("Flywheel Error", launcher.getTicksPerSecError());
+        telemetry.update();
     }
 
     @Override
-    public void stop() {
-
-        // Detener torreta
-        if (turret != null) {
-            turret.disable();
-        }
-        // Detener shooter
-        // Detener transferencia
-        if (transferMotor != null) {
-            transferMotor.setPower(0.0);
-        }
-        if (launcher != null){
-            launcher.stopShooter();
-        }
-
-        // Detener drivetrain
-        if (frontLeft != null) {
-            frontLeft.setPower(0.0);
-        }
-
-        if (frontRight != null) {
-            frontRight.setPower(0.0);
-        }
-
-        if (backLeft != null) {
-            backLeft.setPower(0.0);
-        }
-
-        if (backRight != null) {
-            backRight.setPower(0.0);
-        }
-
-        transferRunning = false;
-        // Limpiar subsistemas y comandos registrados
-        CommandScheduler.getInstance().reset();
+    public void reset() {
+        if (turret != null) turret.disable();
+        if (transferMotor != null) transferMotor.setPower(0.0);
+        if (launcher != null) launcher.stopShooter();
+        frontLeft.setPower(0); frontRight.setPower(0);
+        backLeft.setPower(0); backRight.setPower(0);
+        super.reset();
     }
 }
